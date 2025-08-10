@@ -7,7 +7,6 @@ export const App = () => (
   <Admin 
     dataProvider={firestoreDataProvider}
     layout={Layout}
-    dashboard={RecipeList}
   >
     <Resource 
       name="recipes" 
