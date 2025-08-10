@@ -5,6 +5,7 @@ import {
   NumberField,
   DateField,
   EditButton,
+  DeleteButton,
   ShowButton,
   Create,
   Edit,
@@ -41,6 +42,7 @@ export const RecipeList = () => (
       <BooleanField source="isCheatMeal" label="Cheat Meal" />
       <BooleanField source="isTuppable" label="Tuppable" />
       <EditButton />
+      <DeleteButton />
     </Datagrid>
   </List>
 );

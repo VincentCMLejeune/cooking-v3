@@ -19,6 +19,15 @@ import { db } from './firebase';
 
 export const firestoreDataProvider: DataProvider = {
   getList: async (resource, params) => {
+    console.log('getList called with:', { resource, params });
+    
+    // Check if user is authenticated before proceeding
+    const isAuthenticated = localStorage.getItem('admin_authenticated') === 'true';
+    if (!isAuthenticated) {
+      console.log('User not authenticated, returning empty result');
+      return { data: [], total: 0 };
+    }
+    
     const { page, perPage } = params.pagination;
     const { field, order } = params.sort;
     
@@ -28,11 +37,15 @@ export const firestoreDataProvider: DataProvider = {
       
       // Apply sorting
       if (field && order) {
-        q = query(q, orderBy(field, order.toLowerCase() as 'asc' | 'desc'));
+        console.log('Applying sort:', { field, order });
+        // For now, let's not apply sorting to avoid issues with missing fields
+        // q = query(q, orderBy(field, order.toLowerCase() as 'asc' | 'desc'));
+        console.log('Skipping sort to debug the issue');
       }
       
       // Apply filters
       if (params.filter) {
+        console.log('Applying filters:', params.filter);
         Object.keys(params.filter).forEach(key => {
           if (params.filter[key] !== undefined && params.filter[key] !== null) {
             q = query(q, where(key, '==', params.filter[key]));
@@ -40,27 +53,48 @@ export const firestoreDataProvider: DataProvider = {
         });
       }
       
+      // Get total count first
+      const totalSnapshot = await getDocs(collectionRef);
+      const total = totalSnapshot.size;
+      
       // Apply pagination
-      q = query(q, limit(perPage));
       if (page > 1) {
         // For simplicity, we'll get all docs and slice
         // In production, you might want to implement cursor-based pagination
         const allDocs = await getDocs(query(collectionRef));
         const docs = allDocs.docs.slice((page - 1) * perPage, page * perPage);
         const data = docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log('Firestore getList result (page > 1):', { data, total: allDocs.size });
-        return { data, total: allDocs.size };
+        console.log('Firestore getList result (page > 1):', { data, total });
+        return { data, total };
+      } else {
+        // For first page, apply limit
+        q = query(q, limit(perPage));
       }
       
+      console.log('Final query being executed with limit:', perPage);
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Get total count (this is a simplified approach)
-      const totalSnapshot = await getDocs(collectionRef);
+      console.log('Query details:', {
+        page,
+        perPage,
+        field,
+        order,
+        filters: params.filter,
+        queryLimit: perPage,
+        snapshotSize: snapshot.size,
+        snapshotEmpty: snapshot.empty
+      });
       
-      console.log('Firestore getList result:', { data, total: totalSnapshot.size });
+      console.log('Firestore getList result:', { data, total });
       console.log('Raw Firestore documents:', snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() })));
-      console.log('Raw Firestore row:', snapshot.docs[0].data());
+      console.log('Data array length:', data.length);
+      console.log('Data array contents:', JSON.stringify(data, null, 2));
+      if (snapshot.docs.length > 0) {
+        console.log('Raw Firestore row:', snapshot.docs[0].data());
+      } else {
+        console.log('No documents found in collection');
+      }
 
       return { data, total: totalSnapshot.size };
     } catch (error) {
@@ -147,8 +181,16 @@ export const firestoreDataProvider: DataProvider = {
         return value === undefined ? null : value;
       }));
       
+      // Add timestamps
+      const now = new Date();
+      const dataWithTimestamps = {
+        ...cleanData,
+        createdAt: now,
+        updatedAt: now
+      };
+      
       const collectionRef = collection(db, resource);
-      const docRef = await addDoc(collectionRef, cleanData);
+      const docRef = await addDoc(collectionRef, dataWithTimestamps);
       const docSnap = await getDoc(docRef);
       
       const data = { id: docSnap.id, ...docSnap.data() };
@@ -168,8 +210,14 @@ export const firestoreDataProvider: DataProvider = {
         return value === undefined ? null : value;
       }));
       
+      // Add updated timestamp
+      const dataWithTimestamp = {
+        ...cleanData,
+        updatedAt: new Date()
+      };
+      
       const docRef = doc(db, resource, params.id);
-      await updateDoc(docRef, cleanData);
+      await updateDoc(docRef, dataWithTimestamp);
       const docSnap = await getDoc(docRef);
       
       const data = { id: docSnap.id, ...docSnap.data() };
