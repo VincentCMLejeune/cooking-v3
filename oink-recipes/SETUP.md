@@ -12,17 +12,26 @@
    - Click on the web app icon (</>) or create a new web app
    - Copy the configuration object
 
-4. Update the Firebase configuration in `src/firebase.ts`:
-   ```typescript
-   const firebaseConfig = {
-     apiKey: "your-actual-api-key",
-     authDomain: "your-actual-project-id.firebaseapp.com",
-     projectId: "your-actual-project-id",
-     storageBucket: "your-actual-project-id.appspot.com",
-     messagingSenderId: "your-actual-messaging-sender-id",
-     appId: "your-actual-app-id"
-   };
+4. **Set up environment variables:**
+   ```bash
+   # Copy the example environment file
+   cp .env.example .env
+   
+   # Edit the .env file with your actual Firebase configuration
+   nano .env  # or use your preferred editor
    ```
+
+5. Update the `.env` file with your Firebase configuration:
+   ```env
+   VITE_FIREBASE_API_KEY=your-actual-api-key
+   VITE_FIREBASE_AUTH_DOMAIN=your-actual-project-id.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-actual-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-actual-project-id.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your-actual-messaging-sender-id
+   VITE_FIREBASE_APP_ID=your-actual-app-id
+   ```
+
+**Important**: The `.env` file is automatically ignored by git (via `.gitignore`), so your Firebase credentials will not be committed to version control.
 
 ## Firestore Security Rules
 
@@ -64,8 +73,10 @@ service cloud.firestore {
 
 ## Project Structure
 
-- `src/firebase.ts` - Firebase configuration and initialization
+- `src/firebase.ts` - Firebase configuration and initialization (uses environment variables)
 - `src/dataProvider.ts` - Custom data provider for Firestore
 - `src/App.tsx` - Main React Admin application
 - `src/Layout.tsx` - Custom layout component
+- `.env.example` - Template for environment variables
+- `.env` - Your actual environment variables (gitignored)
 
